@@ -37,31 +37,6 @@ st.title("🫀 ML Classification Models Comparison")
 st.markdown("### Heart Disease UCI Dataset - Binary Classification")
 st.markdown("---")
 
-@st.cache_data
-def load_default_data():
-    """Load Heart Disease UCI dataset"""
-    url = "https://raw.githubusercontent.com/rashidwassan/heart-disease-uci-dataset/main/heart_disease_uci.csv"
-    df = pd.read_csv(url)
-
-    # Drop id and dataset columns
-    df = df.drop(['id', 'dataset'], axis=1)
-
-    # Handle missing values
-    df = df.dropna()
-
-    # Convert target to binary (0 = no disease, 1 = disease)
-    df['target'] = (df['num'] > 0).astype(int)
-    df = df.drop('num', axis=1)
-
-    # Encode categorical variables
-    categorical_cols = ['sex', 'cp', 'fbs', 'restecg', 'exang', 'slope', 'thal']
-    le = LabelEncoder()
-    for col in categorical_cols:
-        if col in df.columns:
-            df[col] = le.fit_transform(df[col].astype(str))
-
-    return df
-
 def preprocess_uploaded_data(df):
     """Preprocess uploaded data"""
     # Drop id and dataset columns if they exist
@@ -148,120 +123,46 @@ if uploaded_file is not None:
     data = pd.read_csv(uploaded_file)
     data = preprocess_uploaded_data(data)
     st.sidebar.success("✅ File uploaded successfully!")
-else:
-    data = load_default_data()
-    st.sidebar.info("ℹ️ Using default Heart Disease UCI dataset")
 
-# Main content
-col1, col2 = st.columns([1, 1])
+    # Main content
+    col1, col2 = st.columns([1, 1])
 
-with col1:
-    st.subheader("📊 Dataset Information")
-    st.write(f"**Shape:** {data.shape[0]} rows × {data.shape[1]} columns")
-    st.write(f"**Features:** {data.shape[1] - 1}")
-    st.write(f"**Target Distribution:**")
-    target_dist = data['target'].value_counts()
-    st.write(f"- No Disease (0): {target_dist.get(0, 0)}")
-    st.write(f"- Disease (1): {target_dist.get(1, 0)}")
+    with col1:
+        st.subheader("📊 Dataset Information")
+        st.write(f"**Shape:** {data.shape[0]} rows × {data.shape[1]} columns")
+        st.write(f"**Features:** {data.shape[1] - 1}")
+        st.write(f"**Target Distribution:**")
+        target_dist = data['target'].value_counts()
+        st.write(f"- No Disease (0): {target_dist.get(0, 0)}")
+        st.write(f"- Disease (1): {target_dist.get(1, 0)}")
 
-with col2:
-    st.subheader("🔍 Data Preview")
-    st.dataframe(data.head(), use_container_width=True)
+    with col2:
+        st.subheader("🔍 Data Preview")
+        st.dataframe(data.head(), use_container_width=True)
 
-st.markdown("---")
+    st.markdown("---")
 
-# Train and evaluate model
-if st.button("🚀 Train and Evaluate Model", type="primary"):
-    with st.spinner(f"Training {model_name}..."):
-        # Prepare data
-        X = data.drop('target', axis=1)
-        y = data['target']
+    # Train and evaluate model
+    if st.button("🚀 Train and Evaluate Model", type="primary"):
+        with st.spinner(f"Training {model_name}..."):
+            # Prepare data
+            X = data.drop('target', axis=1)
+            y = data['target']
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
-        )
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42, stratify=y
+            )
 
-        # Scale features
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
+            # Scale features
+            scaler = StandardScaler()
+            X_train_scaled = scaler.fit_transform(X_train)
+            X_test_scaled = scaler.transform(X_test)
 
-        # Train model
-        model = get_model(model_name)
-        model.fit(X_train_scaled, y_train)
-
-        # Predictions
-        y_pred = model.predict(X_test_scaled)
-
-        if hasattr(model, 'predict_proba'):
-            y_prob = model.predict_proba(X_test_scaled)
-        else:
-            y_prob = None
-
-        # Calculate metrics
-        metrics = calculate_metrics(y_test, y_pred, y_prob)
-        cm = confusion_matrix(y_test, y_pred)
-
-        # Display results
-        st.success(f"✅ {model_name} trained successfully!")
-
-        st.subheader(f"📈 Evaluation Metrics - {model_name}")
-
-        # Metrics in columns
-        metric_cols = st.columns(6)
-        metric_names = ['Accuracy', 'AUC', 'Precision', 'Recall', 'F1 Score', 'MCC']
-
-        for i, metric in enumerate(metric_names):
-            with metric_cols[i]:
-                st.metric(label=metric, value=f"{metrics[metric]:.4f}")
-
-        st.markdown("---")
-
-        # Confusion Matrix and Classification Report
-        col1, col2 = st.columns([1, 1])
-
-        with col1:
-            st.subheader("🎯 Confusion Matrix")
-            fig = plot_confusion_matrix(cm, model_name)
-            st.pyplot(fig)
-
-        with col2:
-            st.subheader("📋 Classification Report")
-            report = classification_report(y_test, y_pred, output_dict=True)
-            report_df = pd.DataFrame(report).transpose()
-            st.dataframe(report_df.style.format("{:.4f}"), use_container_width=True)
-
-# Compare all models section
-st.markdown("---")
-st.subheader("📊 Compare All Models")
-
-if st.button("🔄 Run All Models Comparison", type="secondary"):
-    with st.spinner("Training all models..."):
-        X = data.drop('target', axis=1)
-        y = data['target']
-
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
-        )
-
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
-
-        all_models = {
-            'Logistic Regression': LogisticRegression(max_iter=1000, random_state=42),
-            'Decision Tree': DecisionTreeClassifier(random_state=42, max_depth=10),
-            'KNN': KNeighborsClassifier(n_neighbors=5),
-            'Naive Bayes': GaussianNB(),
-            'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
-            'XGBoost': XGBClassifier(n_estimators=100, random_state=42, use_label_encoder=False, eval_metric='logloss')
-        }
-
-        results = []
-
-        progress_bar = st.progress(0)
-        for idx, (name, model) in enumerate(all_models.items()):
+            # Train model
+            model = get_model(model_name)
             model.fit(X_train_scaled, y_train)
+
+            # Predictions
             y_pred = model.predict(X_test_scaled)
 
             if hasattr(model, 'predict_proba'):
@@ -269,31 +170,128 @@ if st.button("🔄 Run All Models Comparison", type="secondary"):
             else:
                 y_prob = None
 
+            # Calculate metrics
             metrics = calculate_metrics(y_test, y_pred, y_prob)
-            metrics['Model'] = name
-            results.append(metrics)
+            cm = confusion_matrix(y_test, y_pred)
 
-            progress_bar.progress((idx + 1) / len(all_models))
+            # Display results
+            st.success(f"✅ {model_name} trained successfully!")
 
-        results_df = pd.DataFrame(results)
-        results_df = results_df[['Model', 'Accuracy', 'AUC', 'Precision', 'Recall', 'F1 Score', 'MCC']]
+            st.subheader(f"📈 Evaluation Metrics - {model_name}")
 
-        st.success("✅ All models trained successfully!")
-        st.dataframe(
-            results_df.style.highlight_max(subset=['Accuracy', 'AUC', 'Precision', 'Recall', 'F1 Score', 'MCC'], color='lightgreen'),
-            use_container_width=True
-        )
+            # Metrics in columns
+            metric_cols = st.columns(6)
+            metric_names = ['Accuracy', 'AUC', 'Precision', 'Recall', 'F1 Score', 'MCC']
 
-        # Bar chart comparison
-        st.subheader("📊 Model Performance Comparison")
-        fig, ax = plt.subplots(figsize=(12, 6))
-        results_df.set_index('Model')[['Accuracy', 'AUC', 'F1 Score', 'MCC']].plot(kind='bar', ax=ax)
-        plt.xticks(rotation=45, ha='right')
-        plt.ylabel('Score')
-        plt.title('Model Performance Comparison')
-        plt.legend(loc='lower right')
-        plt.tight_layout()
-        st.pyplot(fig)
+            for i, metric in enumerate(metric_names):
+                with metric_cols[i]:
+                    st.metric(label=metric, value=f"{metrics[metric]:.4f}")
+
+            st.markdown("---")
+
+            # Confusion Matrix and Classification Report
+            col1, col2 = st.columns([1, 1])
+
+            with col1:
+                st.subheader("🎯 Confusion Matrix")
+                fig = plot_confusion_matrix(cm, model_name)
+                st.pyplot(fig)
+
+            with col2:
+                st.subheader("📋 Classification Report")
+                report = classification_report(y_test, y_pred, output_dict=True)
+                report_df = pd.DataFrame(report).transpose()
+                st.dataframe(report_df.style.format("{:.4f}"), use_container_width=True)
+
+    # Compare all models section
+    st.markdown("---")
+    st.subheader("📊 Compare All Models")
+
+    if st.button("🔄 Run All Models Comparison", type="secondary"):
+        with st.spinner("Training all models..."):
+            X = data.drop('target', axis=1)
+            y = data['target']
+
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42, stratify=y
+            )
+
+            scaler = StandardScaler()
+            X_train_scaled = scaler.fit_transform(X_train)
+            X_test_scaled = scaler.transform(X_test)
+
+            all_models = {
+                'Logistic Regression': LogisticRegression(max_iter=1000, random_state=42),
+                'Decision Tree': DecisionTreeClassifier(random_state=42, max_depth=10),
+                'KNN': KNeighborsClassifier(n_neighbors=5),
+                'Naive Bayes': GaussianNB(),
+                'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
+                'XGBoost': XGBClassifier(n_estimators=100, random_state=42, use_label_encoder=False, eval_metric='logloss')
+            }
+
+            results = []
+
+            progress_bar = st.progress(0)
+            for idx, (name, model) in enumerate(all_models.items()):
+                model.fit(X_train_scaled, y_train)
+                y_pred = model.predict(X_test_scaled)
+
+                if hasattr(model, 'predict_proba'):
+                    y_prob = model.predict_proba(X_test_scaled)
+                else:
+                    y_prob = None
+
+                metrics = calculate_metrics(y_test, y_pred, y_prob)
+                metrics['Model'] = name
+                results.append(metrics)
+
+                progress_bar.progress((idx + 1) / len(all_models))
+
+            results_df = pd.DataFrame(results)
+            results_df = results_df[['Model', 'Accuracy', 'AUC', 'Precision', 'Recall', 'F1 Score', 'MCC']]
+
+            st.success("✅ All models trained successfully!")
+            st.dataframe(
+                results_df.style.highlight_max(subset=['Accuracy', 'AUC', 'Precision', 'Recall', 'F1 Score', 'MCC'], color='lightgreen'),
+                use_container_width=True
+            )
+
+            # Bar chart comparison
+            st.subheader("📊 Model Performance Comparison")
+            fig, ax = plt.subplots(figsize=(12, 6))
+            results_df.set_index('Model')[['Accuracy', 'AUC', 'F1 Score', 'MCC']].plot(kind='bar', ax=ax)
+            plt.xticks(rotation=45, ha='right')
+            plt.ylabel('Score')
+            plt.title('Model Performance Comparison')
+            plt.legend(loc='lower right')
+            plt.tight_layout()
+            st.pyplot(fig)
+
+else:
+    # No file uploaded - show upload instructions
+    st.info("👆 Please upload a CSV file to get started.")
+
+    st.markdown("### Expected CSV Format")
+    st.markdown("""
+    Your CSV file should contain the Heart Disease UCI dataset with the following columns:
+
+    | Column | Description |
+    |--------|-------------|
+    | age | Age in years |
+    | sex | Sex (Male/Female) |
+    | cp | Chest pain type |
+    | trestbps | Resting blood pressure |
+    | chol | Serum cholesterol |
+    | fbs | Fasting blood sugar > 120 mg/dl |
+    | restecg | Resting ECG results |
+    | thalch | Maximum heart rate achieved |
+    | exang | Exercise induced angina |
+    | oldpeak | ST depression |
+    | slope | Slope of peak exercise ST segment |
+    | ca | Number of major vessels |
+    | thal | Thalassemia |
+    | num/target | Target variable (0 = no disease, >0 = disease) |
+    """)
 
 # Footer
 st.markdown("---")

@@ -23,6 +23,7 @@ from sklearn.metrics import (
     confusion_matrix, classification_report
 )
 import warnings
+import gc
 warnings.filterwarnings('ignore')
 
 # Page configuration
@@ -37,6 +38,7 @@ st.title("🫀 ML Classification Models Comparison")
 st.markdown("### Heart Disease UCI Dataset - Binary Classification")
 st.markdown("---")
 
+@st.cache_data
 def preprocess_uploaded_data(df):
     """Preprocess uploaded data"""
     # Drop id and dataset columns if they exist
@@ -69,8 +71,8 @@ def get_model(model_name):
         'Decision Tree': DecisionTreeClassifier(random_state=42, max_depth=10),
         'KNN': KNeighborsClassifier(n_neighbors=5),
         'Naive Bayes': GaussianNB(),
-        'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
-        'XGBoost': XGBClassifier(n_estimators=100, random_state=42, use_label_encoder=False, eval_metric='logloss')
+        'Random Forest': RandomForestClassifier(n_estimators=50, random_state=42, n_jobs=1),
+        'XGBoost': XGBClassifier(n_estimators=50, random_state=42, use_label_encoder=False, eval_metric='logloss', n_jobs=1)
     }
     return models[model_name]
 
@@ -106,6 +108,7 @@ def plot_confusion_matrix(cm, model_name):
     ax.set_xlabel('Predicted')
     ax.set_ylabel('Actual')
     ax.set_title(f'Confusion Matrix - {model_name}')
+    plt.close(fig)  # Prevent memory leak
     return fig
 
 # Sidebar
@@ -196,6 +199,8 @@ if uploaded_file is not None:
                 st.subheader("🎯 Confusion Matrix")
                 fig = plot_confusion_matrix(cm, model_name)
                 st.pyplot(fig)
+                plt.close('all')  # Clean up any remaining figures
+                gc.collect()  # Force garbage collection
 
             with col2:
                 st.subheader("📋 Classification Report")
@@ -225,8 +230,8 @@ if uploaded_file is not None:
                 'Decision Tree': DecisionTreeClassifier(random_state=42, max_depth=10),
                 'KNN': KNeighborsClassifier(n_neighbors=5),
                 'Naive Bayes': GaussianNB(),
-                'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
-                'XGBoost': XGBClassifier(n_estimators=100, random_state=42, use_label_encoder=False, eval_metric='logloss')
+                'Random Forest': RandomForestClassifier(n_estimators=50, random_state=42, n_jobs=1),
+                'XGBoost': XGBClassifier(n_estimators=50, random_state=42, use_label_encoder=False, eval_metric='logloss', n_jobs=1)
             }
 
             results = []
@@ -266,6 +271,8 @@ if uploaded_file is not None:
             plt.legend(loc='lower right')
             plt.tight_layout()
             st.pyplot(fig)
+            plt.close(fig)  # Prevent memory leak
+            gc.collect()  # Force garbage collection
 
 else:
     # No file uploaded - show upload instructions

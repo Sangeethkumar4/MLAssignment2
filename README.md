@@ -112,7 +112,7 @@ streamlit run app.py
 
 The app is deployed on Streamlit Community Cloud.
 
-**Live App URL:** [https://mlassignment2-4tv2edeqpzcxkaz2tfujy4.streamlit.app/]
+**Live App URL:** [https://mlassignment2-ezqk9wttfynpuouwpwvm2c.streamlit.app/]
 
 ## Author
 

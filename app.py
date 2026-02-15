@@ -7,6 +7,8 @@ Models: Logistic Regression, Decision Tree, KNN, Naive Bayes, Random Forest, XGB
 import streamlit as st
 import pandas as pd
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend to prevent memory leaks
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
@@ -26,6 +28,9 @@ import warnings
 import gc
 warnings.filterwarnings('ignore')
 
+# Limit matplotlib memory usage
+plt.rcParams['figure.max_open_warning'] = 5
+
 # Page configuration
 st.set_page_config(
     page_title="ML Classification Models",
@@ -37,6 +42,16 @@ st.set_page_config(
 st.title("🫀 ML Classification Models Comparison")
 st.markdown("### Heart Disease UCI Dataset - Binary Classification")
 st.markdown("---")
+
+# Initialize session state for tracking
+if 'run_count' not in st.session_state:
+    st.session_state.run_count = 0
+
+# Periodic cleanup every 10 runs to prevent memory buildup
+st.session_state.run_count += 1
+if st.session_state.run_count % 10 == 0:
+    st.cache_data.clear()
+    gc.collect()
 
 @st.cache_data
 def preprocess_uploaded_data(df):
@@ -101,6 +116,7 @@ def calculate_metrics(y_true, y_pred, y_prob=None):
 
 def plot_confusion_matrix(cm, model_name):
     """Plot confusion matrix"""
+    plt.close('all')  # Close any existing figures first
     fig, ax = plt.subplots(figsize=(6, 4))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax,
                 xticklabels=['No Disease', 'Disease'],
@@ -108,8 +124,13 @@ def plot_confusion_matrix(cm, model_name):
     ax.set_xlabel('Predicted')
     ax.set_ylabel('Actual')
     ax.set_title(f'Confusion Matrix - {model_name}')
-    plt.close(fig)  # Prevent memory leak
     return fig
+
+
+def cleanup_memory():
+    """Clean up matplotlib figures and run garbage collection"""
+    plt.close('all')
+    gc.collect()
 
 # Sidebar
 st.sidebar.header("📁 Data Upload")
@@ -199,8 +220,13 @@ if uploaded_file is not None:
                 st.subheader("🎯 Confusion Matrix")
                 fig = plot_confusion_matrix(cm, model_name)
                 st.pyplot(fig)
-                plt.close('all')  # Clean up any remaining figures
-                gc.collect()  # Force garbage collection
+                cleanup_memory()
+
+            # Clean up model to free memory
+            del model, X_train_scaled, X_test_scaled, y_pred
+            if y_prob is not None:
+                del y_prob
+            cleanup_memory()
 
             with col2:
                 st.subheader("📋 Classification Report")
@@ -263,6 +289,7 @@ if uploaded_file is not None:
 
             # Bar chart comparison
             st.subheader("📊 Model Performance Comparison")
+            plt.close('all')  # Clean up before creating new figure
             fig, ax = plt.subplots(figsize=(12, 6))
             results_df.set_index('Model')[['Accuracy', 'AUC', 'F1 Score', 'MCC']].plot(kind='bar', ax=ax)
             plt.xticks(rotation=45, ha='right')
@@ -271,8 +298,10 @@ if uploaded_file is not None:
             plt.legend(loc='lower right')
             plt.tight_layout()
             st.pyplot(fig)
-            plt.close(fig)  # Prevent memory leak
-            gc.collect()  # Force garbage collection
+
+            # Clean up all models and data
+            del all_models, X_train_scaled, X_test_scaled
+            cleanup_memory()
 
 else:
     # No file uploaded - show upload instructions

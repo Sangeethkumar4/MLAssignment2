@@ -117,3 +117,7 @@ The app is deployed on Streamlit Community Cloud.
 ## Author
 
 M.Tech (AIML/DSE) - Machine Learning Assignment 2
+
+## Screenshot
+<img width="1673" height="1063" alt="image" src="https://github.com/user-attachments/assets/4063f863-de1a-4d06-a9b3-d635a4412ccf" />
+

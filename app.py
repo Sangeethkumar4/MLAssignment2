@@ -220,19 +220,18 @@ if uploaded_file is not None:
                 st.subheader("🎯 Confusion Matrix")
                 fig = plot_confusion_matrix(cm, model_name)
                 st.pyplot(fig)
-                cleanup_memory()
-
-            # Clean up model to free memory
-            del model, X_train_scaled, X_test_scaled, y_pred
-            if y_prob is not None:
-                del y_prob
-            cleanup_memory()
 
             with col2:
                 st.subheader("📋 Classification Report")
                 report = classification_report(y_test, y_pred, output_dict=True)
                 report_df = pd.DataFrame(report).transpose()
                 st.dataframe(report_df.style.format("{:.4f}"), use_container_width=True)
+
+            # Clean up model to free memory after all displays are done
+            del model, X_train_scaled, X_test_scaled, y_pred
+            if y_prob is not None:
+                del y_prob
+            cleanup_memory()
 
     # Compare all models section
     st.markdown("---")
